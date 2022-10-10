@@ -1,10 +1,11 @@
+from http import client
 from django.db import models
 
 
 class Usuario (models.Model):
-    cpf = models.CharField(label=u'CPF')
-    password =  models.CharField(min_length = 8,max_length = 8, db_column = 'PASSWORD')
-    token = models.CharField(min_length = 5,max_length = 5, db_column = 'Token')
+    cpf = models.CharField(db_column='CPF',max_length=11)
+    password =  models.CharField(max_length = 8, db_column = 'PASSWORD')
+    token = models.CharField(max_length = 5, db_column = 'Token')
 
     def __str__(self) -> str:
         return self.cpf
@@ -21,16 +22,19 @@ class Cliente(models.Model):
         ('b', 'BAIXO')
     )
 
-    name  = models.CharField(max_length = 100,min_lengtg = 5 , db_column = 'NAME')
+    name = models.CharField(max_length = 100, db_column = 'NAME')
     sex = models.CharField(max_length=1,choices=SEX_CHOICE,db_column='SEX')
     birthdate = models.DateField(db_column='BIRTHDATE')
-    status = models.CharField(choices=STATUS_CHOICE,db_column='STATUS')
+    status = models.CharField(choices=STATUS_CHOICE,db_column='STATUS',max_length=1)
+    usuario = models.ForeignKey(Usuario,on_delete=models.PROTECT)
+    
 
 class Contato(models.Model):
-    telephone = models.CharField(max_length=11,min_length=11,db_column='TELEPHONE')
+    telephone = models.CharField(max_length=11,db_column='TELEPHONE')
     email = models.EmailField(blank=True,null=False , db_column='EMAIL')
+    cliente = models.ForeignKey(Cliente,on_delete=models.PROTECT)
 
-class Endereço(models.Model):
+class Endereco(models.Model):
     UF_CHOICES = (
         ('AC', 'Acre'), 
         ('AL', 'Alagoas'),
@@ -60,14 +64,22 @@ class Endereço(models.Model):
         ('TO', 'Tocantins')
     )
 
-    road = models.CharField(db_column='ROAD')
-    number = models.CharField(max_length=5,min_length=1,db_column='NUMBER')
-    cep = models.models.CharField(label=u'CEP')
+    road = models.CharField(db_column='ROAD',max_length=5)
+    number = models.CharField(max_length=5,db_column='NUMBER')
+    cep = models.CharField(db_column ='CEP',max_length=8)
     city = models.CharField(max_length=255,db_column='CITY')
     state = models.CharField(max_length=2,choices=UF_CHOICES,db_column='STATE')
     district = models.CharField(max_length=255,db_column='DISTRICT')
     complement = models.CharField(max_length=255,db_column='COMPLEMENTE')
     cliente = models.ForeignKey(Cliente,on_delete=models.PROTECT)
+
+
+class Conta(models.Model):
+    agency = models.CharField(default='0001',db_column='AGENCY',max_length=4)
+    account = models.CharField(max_length = 6,db_column='ACCOUNT')
+    balance = models.DecimalField(decimal_places=2,db_column='BALANCE', default = 0.00, max_digits = 30 )
+    cliente = models.ForeignKey(Cliente,on_delete=models.PROTECT)
+    
 
 
 class Extrato (models.Model):
@@ -94,17 +106,12 @@ class Extrato (models.Model):
 
 
     date = models.DateField(db_column='DATE',auto_now_add=True)
-    value = models.DecimalField(decimal_places=2,db_column='VALUE')
+    value = models.DecimalField(decimal_places=2,db_column='VALUE',max_digits=10)
     time = models.TimeField(db_column='TIME',auto_now_add=True)
-    type = models.CharField(choices=TYPE_CHOICE,db_column='TYPE')
-    conclusion = models.CharField(choices=CONCLUSION_CHOICE,db_column='CONCLUSION')
+    type = models.CharField(choices=TYPE_CHOICE,db_column='TYPE',max_length=2)
+    conclusion = models.CharField(choices=CONCLUSION_CHOICE,db_column='CONCLUSION',max_length=2)
+    conta = models.ForeignKey(Conta,on_delete=models.PROTECT)
 
-class Conta(models.Model):
-    agency = models.CharField(default='0001',db_column='AGENCY')
-    account = models.CharField(max_length = 6,db_column='ACCOUNT')
-    balance = models.DecimalField(decimal_places=2,db_column='BALANCE', default = 0.00, max_digits = 30 )
-    cliente = models.ForeignKey(Cliente,on_delete=models.PROTECT)
-    extrato = models.ForeignKey(Extrato,on_delete=models.PROTECT)
 
 class Cartoes(models.Model):
 
@@ -122,13 +129,15 @@ class Cartoes(models.Model):
         ('EL','ELO')
     )
 
-    namber_cad = models.IntegerField(max_length=16,min_lengt=16,db_column='NAMBER_CARD')
-    cvc2 = models.IntegerField(max_length=4,db_column='CVC2')
+    namber_cad = models.CharField(max_length=16,db_column='NAMBER_CARD')
+    cvc2 = models.CharField(max_length=4,db_column='CVC2')
     date_vale = models.DateField(db_column='DATE_VALE',auto_now_add=True)
-    type_card = models.CharField(db_column='TYPE_CARD',choices=TYPE_CAD_CHOICE)
-    flag = models.CharField(db_column='FLAG',choices=FLAG_CHOICE)
+    type_card = models.CharField(db_column='TYPE_CARD',choices=TYPE_CAD_CHOICE,max_length=2)
+    flag = models.CharField(db_column='FLAG',choices=FLAG_CHOICE,max_length=2)
     nfc = models.BooleanField(default=True,db_column='NFC')
     blocked = models.BooleanField(default=True,db_column='BLOCKED')
+    conta = models.ForeignKey(Conta,on_delete=models.PROTECT)
+
 
 class Tranferencia(models.Model):
 
@@ -138,8 +147,41 @@ class Tranferencia(models.Model):
     )
 
     date_movement = models.DateField(db_column='DATE_MOVEMENTE',auto_now_add=True)
-    type = models.CharField(choices=TYPE_CHOICE,db_column='TYPE')
+    type = models.CharField(choices=TYPE_CHOICE,db_column='TYPE',max_length=1)
     value = models.DecimalField(decimal_places=2,db_column='VALUE',default = 0.00,max_digits = 30)
-    debited = models.ForeignKey(Conta,on_delete=models.PROTECT)
-    credited = models.ForeignKey(Conta,on_delete=models.PROTECT)
+    debited = models.ForeignKey(Conta,on_delete=models.PROTECT,related_name='debited')
+    credited = models.ForeignKey(Conta,on_delete=models.PROTECT,related_name='credited')
   
+class Emprestimos(models.Model):
+    STATUS_CHOICE = (
+        ('A','APROVADO'),
+        ('R','REPROVADO')
+    )
+
+    velue = models.DecimalField(decimal_places=2,db_column='VALUE',default = 0.00,max_digits = 30)
+    date_contract = models.DateField(db_column='DATE_VALE', auto_now_add=True)
+    installments = models.IntegerField(db_column='INSTALLMENTS')
+    installments_paind = models.IntegerField(db_column='INSTALLMENTS_PAIND')
+    fees = models.DecimalField(db_column='FEES',default = 0.00,max_digits = 10,decimal_places=2)
+    status = models.CharField(db_column='STATUS',choices=STATUS_CHOICE,max_length=1)
+
+class Pagamento_Emprstimos(models.Model):
+
+    amount_to_pay = models.DecimalField(decimal_places=2, db_column='AMOUNT_TO_PAY', default=0.00, max_digits=30)
+    date_pay = models.DateField(db_column='DATE_PAY', auto_now_add=True)
+    expiration_date = models.DateField(db_column='EXPIRATION_DATE', auto_now_add=True)
+    emprestimo = models.ForeignKey(Emprestimos,on_delete=models.PROTECT)
+
+
+class Fatura(models.Model):
+
+    invoice_amount = models.DecimalField(decimal_places=2, db_column='INVOICE_AMOUNT', default=0.00, max_digits=30)
+    expiration_date = models.DateField(db_column='EXPIRATION_DATE', auto_now_add=True)
+    fees = models.DecimalField(db_column='FEES', default=0.00, max_digits=10,decimal_places=2)
+    cartoes = models.ForeignKey(Cartoes,on_delete=models.PROTECT)
+
+
+
+class Imagens(models.Model):
+    title = models.CharField(max_length=255)
+    foto = models.ImageField(upload_to='back_end/imagens')
