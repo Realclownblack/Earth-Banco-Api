@@ -17,15 +17,20 @@ from rest_framework.generics import ListCreateAPIView, RetrieveUpdateDestroyAPIV
 from rest_framework import viewsets
 import random
 from random import randint
+from rest_framework.views import APIView
 
 class ImagensViewSet(viewsets.ModelViewSet):
     queryset = Imagens.objects.all()
     serializer_class = ImagensSerializer
 
-class UsuarioViewSet(viewsets.ModelViewSet):
-    queryset = Usuario.objects.all()
-    serializer_class = RegisterUsuarioSerializer
-    def create(self, request, *args, **kwargs):
+    
+@api_view(['GET','POST'])
+def RegisterUsuario(request):
+    if request.method == 'GET':
+        queryset = Usuario.objects.all()
+        serializer = RegisterUsuarioSerializer(queryset, many=True)
+        return Response(request.data)
+    elif request.method == 'POST':
         lista_token = []
         listaCaracteries = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z',
                             '1','2','3','4','5','6','7','8','9','#','!','?','$','A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I',
@@ -35,8 +40,11 @@ class UsuarioViewSet(viewsets.ModelViewSet):
             cod = str(cod)
             lista_token.append(cod)
         value = ''.join(lista_token)
-        lista_token.clear()  
-        return super().create(request, *args, **kwargs)
+        request.data['token'] = value
+        lista_token.clear()
+        print(request.data)
+        return Response(request.data)
+        
 
 class ClienteViewSet(viewsets.ModelViewSet):
     queryset = Cliente.objects.all()

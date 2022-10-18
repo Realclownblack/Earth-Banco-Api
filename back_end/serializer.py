@@ -13,7 +13,7 @@ class ImagensSerializer(serializers.ModelSerializer):
 class RegisterUsuarioSerializer(serializers.ModelSerializer):
     class Meta:
         model = Usuario
-        fields = ['cpf','password','token']
+        fields = ['cpf','password', 'token']
 
 class RegisterClienteSerializer(serializers.ModelSerializer):
     class Meta:
